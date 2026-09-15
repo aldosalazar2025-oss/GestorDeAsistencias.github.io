@@ -8,7 +8,7 @@
 
 (function () {
 
-    const PALETA = ["primary", "success", "danger", "warning", "info", "dark"];
+    const PALETA = ["primary", "success", "danger", "warning", "info"];
 
     function colorAleatorio() {
         return PALETA[Math.floor(Math.random() * PALETA.length)];
