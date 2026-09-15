@@ -1,0 +1,46 @@
+// ⚠ SIN USO — Cloud Storage for Firebase exige el plan de pago Blaze
+// desde el 30/10/2024 (buckets nuevos) y desde el 03/02/2026 también
+// para los antiguos. Para que el sistema funcione en el plan gratuito
+// Spark, las fotos de estudiantes se guardan como miniaturas de 200x200
+// comprimidas dentro del propio documento de Firestore.
+//
+// Este archivo se conserva por si algún día se pasa a Blaze: en ese caso
+// se vuelve a subir la foto a Storage y estas reglas ya están escritas.
+// Ver docs/configurar-firebase.md.
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function estaAutenticado() {
+      return request.auth != null;
+    }
+
+    function rolDelUsuario() {
+      return firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data.rol;
+    }
+
+    function esAdmin() {
+      return estaAutenticado() && rolDelUsuario() == "admin";
+    }
+
+    function esPersonalAsistencia() {
+      return estaAutenticado()
+        && (rolDelUsuario() == "admin" || rolDelUsuario() == "encargado");
+    }
+
+    // Fotos de estudiantes: el personal de asistencia las necesita
+    // ver en el escáner; solo admin puede subir/reemplazar/borrar.
+    match /estudiantes/{archivo} {
+      allow read: if esPersonalAsistencia();
+      allow write: if esAdmin()
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches("image/.*");
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

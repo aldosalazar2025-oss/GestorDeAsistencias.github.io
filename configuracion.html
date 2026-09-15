@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuración de horarios | Asistencia Escolar</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="css/estilos.css">
+
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/logo-180.png">
+  <meta name="theme-color" content="#080d1a">
+</head>
+<!-- Solo admin: firestore.rules ya exige rol admin para escribir en
+     configuracionHorarios -->
+<body data-rol-requerido="admin" class="p-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="titulo-pagina"><img src="assets/logo.png" alt="Lalito Quien Mas" class="logo-cabecera"><span><i class="fa-solid fa-clock"></i> Configuración de horarios</span></h2>
+    <div>
+      <a href="index.html" class="btn btn-outline-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Volver al panel
+      </a>
+      <button id="btnLogout" class="btn btn-outline-danger btn-sm">
+        <i class="fa-solid fa-right-from-bracket"></i> Salir
+      </button>
+    </div>
+  </div>
+
+  <p class="text-muted mb-4">
+    Estos horarios no están escritos en el código: el panel de
+    <strong>Escanear asistencia</strong> (Fase 6) los lee de aquí para
+    calcular automáticamente si un estudiante llegó temprano, puntual
+    o tarde.
+  </p>
+
+  <div class="row g-4">
+
+    <div class="col-md-6">
+      <div class="card p-3">
+        <h5 class="mb-3"><i class="fa-solid fa-sun"></i> Turno mañana</h5>
+        <form id="form-manana">
+          <div class="mb-2">
+            <label class="form-label">Inicio del período de llegada temprana</label>
+            <input type="time" id="inicioTemprano-manana" class="form-control" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Inicio de puntualidad</label>
+            <input type="time" id="inicioPuntual-manana" class="form-control" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Hora límite de puntualidad</label>
+            <input type="time" id="finPuntual-manana" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Horario de salida</label>
+            <input type="time" id="horaSalida-manana" class="form-control" required>
+          </div>
+          <div id="mensaje-manana" class="alert d-none"></div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar turno mañana
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card p-3">
+        <h5 class="mb-3"><i class="fa-solid fa-cloud-sun"></i> Turno tarde</h5>
+        <form id="form-tarde">
+          <div class="mb-2">
+            <label class="form-label">Inicio del período de llegada temprana</label>
+            <input type="time" id="inicioTemprano-tarde" class="form-control" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Inicio de puntualidad</label>
+            <input type="time" id="inicioPuntual-tarde" class="form-control" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Hora límite de puntualidad</label>
+            <input type="time" id="finPuntual-tarde" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Horario de salida</label>
+            <input type="time" id="horaSalida-tarde" class="form-control" required>
+          </div>
+          <div id="mensaje-tarde" class="alert d-none"></div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar turno tarde
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="js/auth-guard.js"></script>
+  <script type="module" src="js/configuracion.js"></script>
+</body>
+</html>

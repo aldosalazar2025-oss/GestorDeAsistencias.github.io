@@ -1,0 +1,179 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // FUNCIONES AUXILIARES
+    // ============================================================
+
+    function estaAutenticado() {
+      return request.auth != null;
+    }
+
+    function documentoUsuario() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function rolDelUsuario() {
+      return documentoUsuario().rol;
+    }
+
+    // Fase 11: un usuario desactivado no debe poder escribir aunque su
+    // sesión de Auth siga viva. auth-guard.js ya lo expulsa en el
+    // cliente, pero el cliente no es una barrera de seguridad.
+    function estaActivo() {
+      return estaAutenticado() && documentoUsuario().activo == true;
+    }
+
+    function esAdmin() {
+      return estaActivo() && rolDelUsuario() == "admin";
+    }
+
+    function esPersonalAsistencia() {
+      return estaActivo()
+        && (rolDelUsuario() == "admin" || rolDelUsuario() == "encargado");
+    }
+
+    // ============================================================
+    // USUARIOS
+    // Cada usuario puede leer su propio documento (para saber su rol).
+    // Solo un admin puede crear/editar/eliminar usuarios.
+    // ============================================================
+
+    match /usuarios/{usuarioId} {
+
+      allow read: if estaAutenticado() && (request.auth.uid == usuarioId || esAdmin());
+
+      allow create: if esAdmin()
+                    && request.resource.data.rol in ["admin", "encargado"]
+                    && request.resource.data.activo is bool;
+
+      // Fase 11: un admin no puede quitarse a sí mismo el rol ni
+      // desactivarse. Sin esto, el único admin de la institución puede
+      // dejarse fuera del sistema con dos clics y ya no hay quien
+      // gestione usuarios ni horarios.
+      allow update: if esAdmin()
+                    && request.resource.data.rol in ["admin", "encargado"]
+                    && (
+                         request.auth.uid != usuarioId
+                         || (request.resource.data.rol == "admin"
+                             && request.resource.data.activo == true)
+                       );
+
+      allow delete: if esAdmin() && request.auth.uid != usuarioId;
+    }
+
+    // ============================================================
+    // ESTUDIANTES
+    // Lectura: admin y personal de asistencia (necesitan ver datos
+    // al escanear y al registrar manualmente). Escritura: solo admin.
+    // ============================================================
+
+    match /estudiantes/{estudianteId} {
+
+      allow read: if esPersonalAsistencia();
+
+      allow create: if esAdmin()
+                    && request.resource.data.keys().hasAll(
+                         ["nombres", "apellidos", "dni", "grado", "seccion", "turno", "codigoQR", "estado"]
+                       )
+                    && request.resource.data.turno in ["manana", "tarde"]
+                    && request.resource.data.estado in ["activo", "inactivo"]
+                    && request.resource.data.dni is string
+                    && request.resource.data.dni.size() == 8;
+
+      // El codigoQR no se reasigna nunca (regla de negocio de la Fase 3):
+      // si cambiara, un carné ya impreso apuntaría a otro estudiante.
+      allow update: if esAdmin()
+                    && request.resource.data.codigoQR == resource.data.codigoQR
+                    && request.resource.data.turno in ["manana", "tarde"]
+                    && request.resource.data.estado in ["activo", "inactivo"];
+
+      allow delete: if esAdmin();
+    }
+
+    // ============================================================
+    // CONFIGURACIÓN DE HORARIOS
+    // Lectura: todo el personal (el escáner y los reportes la necesitan).
+    // Escritura: solo admin, con las cuatro horas presentes.
+    // ============================================================
+
+    match /configuracionHorarios/{turno} {
+
+      allow read: if esPersonalAsistencia();
+
+      allow write: if esAdmin()
+                   && turno in ["manana", "tarde"]
+                   && request.resource.data.keys().hasAll(
+                        ["inicioTemprano", "inicioPuntual", "finPuntual", "horaSalida"]
+                      );
+    }
+
+    // ============================================================
+    // ASISTENCIAS
+    // Endurecido en la Fase 11 con las reglas de negocio que las
+    // fases 7 a 9 dieron por ciertas. Antes bastaba con que los
+    // campos existieran; ahora se valida su contenido.
+    // ============================================================
+
+    match /asistencias/{asistenciaId} {
+
+      function datosValidos(datos) {
+        return datos.keys().hasAll(
+                 ["estudianteId", "fecha", "turno", "tipoRegistro", "horaRegistrada", "estado", "origen"]
+               )
+               && datos.tipoRegistro in ["entrada", "salida"]
+               && datos.turno in ["manana", "tarde"]
+               && datos.origen in ["qr", "manual"]
+               // "ausente" y "salida_pendiente" NO son estados
+               // almacenables: son derivados que se calculan al leer
+               // (ver docs/fase7-entradas-salidas.md). Si alguien los
+               // escribiera, los reportes contarían dos veces.
+               && datos.estado in ["temprano", "puntual", "tarde", "reingreso", "salida_registrada"]
+               && datos.fecha is string
+               && datos.fecha.size() == 10
+               && datos.horaRegistrada is timestamp;
+      }
+
+      // Un registro manual exige motivo y deja constancia de quién lo
+      // hizo: es la única vía por la que alguien puede afirmar una
+      // asistencia sin que el estudiante haya escaneado nada.
+      function manualValido(datos) {
+        return datos.origen != "manual"
+               || (datos.motivo is string
+                   && datos.motivo.size() > 0
+                   && datos.registradoPor == request.auth.uid);
+      }
+
+      allow create: if esPersonalAsistencia()
+                    && datosValidos(request.resource.data)
+                    && manualValido(request.resource.data)
+                    && request.resource.data.registradoPor == request.auth.uid;
+
+      allow read: if esPersonalAsistencia();
+
+      // Corrección manual de un registro ya guardado (Fase 15). Exige
+      // el bloque de auditoría completo y prohíbe mover el registro a
+      // otro estudiante o a otra fecha: eso no es una corrección, es
+      // fabricar un registro nuevo.
+      allow update: if esPersonalAsistencia()
+                    && datosValidos(request.resource.data)
+                    && request.resource.data.estudianteId == resource.data.estudianteId
+                    && request.resource.data.fecha == resource.data.fecha
+                    && request.resource.data.auditoria.usuarioModifico == request.auth.uid
+                    && request.resource.data.auditoria.motivoModificacion is string
+                    && request.resource.data.auditoria.motivoModificacion.size() > 0
+                    && request.resource.data.auditoria.keys().hasAll(
+                         ["registroOriginal", "usuarioModifico", "motivoModificacion", "fechaModificacion"]
+                       );
+
+      allow delete: if esAdmin();
+    }
+
+    // Cualquier otra colección queda bloqueada por defecto.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

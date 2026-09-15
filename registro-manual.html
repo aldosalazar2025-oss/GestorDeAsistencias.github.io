@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro manual | Asistencia Escolar</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="css/estilos.css">
+
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/logo-180.png">
+  <meta name="theme-color" content="#080d1a">
+</head>
+<!-- Sin data-rol-requerido: es la alternativa al escáner cuando el QR
+     falla, así que la usa el mismo personal que escanea. -->
+<body class="p-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="titulo-pagina"><img src="assets/logo.png" alt="Lalito Quien Mas" class="logo-cabecera"><span><i class="fa-solid fa-pen-to-square"></i> Registro manual</span></h2>
+    <div>
+      <a href="escanear.html" class="btn btn-outline-primary btn-sm">
+        <i class="fa-solid fa-qrcode"></i> Escáner
+      </a>
+      <a href="index.html" class="btn btn-outline-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Volver al panel
+      </a>
+      <button id="btnLogout" class="btn btn-outline-danger btn-sm">
+        <i class="fa-solid fa-right-from-bracket"></i> Salir
+      </button>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    <i class="fa-solid fa-circle-info"></i>
+    Usa esta pantalla solo cuando el código QR no se pueda escanear
+    (carné olvidado, dañado, cámara sin funcionar). Todo registro hecho
+    aquí queda marcado como <strong>manual</strong>, con el motivo y el
+    usuario que lo hizo, para poder auditarlo después.
+  </div>
+
+  <div class="row g-4">
+
+    <!-- ============ BÚSQUEDA Y REGISTRO ============ -->
+    <div class="col-lg-7">
+
+      <div class="tabla">
+        <h3><i class="fa-solid fa-magnifying-glass"></i> Buscar estudiante</h3>
+
+        <input type="text" id="buscarEstudiante" class="form-control mb-3"
+               placeholder="Nombres, apellidos o DNI (mínimo 2 caracteres)" autocomplete="off">
+
+        <div id="resultadosBusqueda" class="lista-resultados"></div>
+      </div>
+
+      <div id="panelRegistro" class="tabla mt-4 d-none">
+        <h3><i class="fa-solid fa-user-check"></i> Registrar asistencia</h3>
+
+        <div id="fichaEstudiante" class="mb-3"></div>
+
+        <div id="registrosDeHoy" class="mb-3"></div>
+
+        <div class="row g-3">
+
+          <div class="col-md-6">
+            <label class="form-label">Tipo de registro</label>
+            <select id="tipoRegistro" class="form-select">
+              <option value="auto">Automático (recomendado)</option>
+              <option value="entrada">Forzar entrada</option>
+              <option value="salida">Forzar salida</option>
+            </select>
+            <small class="text-muted" id="ayudaTipo"></small>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Hora del registro</label>
+            <input type="time" id="horaRegistro" class="form-control">
+            <small class="text-muted">
+              Por defecto la hora actual. Ajústala si el estudiante llegó antes
+              de que pudieras registrarlo.
+            </small>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Motivo del registro manual <span class="text-danger">*</span></label>
+            <select id="motivoRapido" class="form-select mb-2">
+              <option value="">— Selecciona un motivo —</option>
+              <option value="Carné QR olvidado">Carné QR olvidado</option>
+              <option value="Carné QR dañado o ilegible">Carné QR dañado o ilegible</option>
+              <option value="Cámara o dispositivo sin funcionar">Cámara o dispositivo sin funcionar</option>
+              <option value="Cierre de salida pendiente">Cierre de salida pendiente</option>
+              <option value="otro">Otro (especificar)</option>
+            </select>
+            <input type="text" id="motivoTexto" class="form-control d-none"
+                   placeholder="Describe el motivo" maxlength="140">
+          </div>
+
+        </div>
+
+        <div id="mensajeRegistro" class="alert d-none mt-3"></div>
+
+        <div class="d-flex gap-2 mt-3">
+          <button id="btnGuardarRegistro" class="btn btn-primary">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar registro
+          </button>
+          <button id="btnCancelar" class="btn btn-outline-secondary">
+            Cancelar
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ============ SALIDAS PENDIENTES ============ -->
+    <div class="col-lg-5">
+
+      <div class="tabla">
+        <h3><i class="fa-solid fa-door-open"></i> Salidas pendientes de hoy</h3>
+
+        <p class="text-muted small">
+          Estudiantes con entrada registrada y sin salida, pasada ya la hora
+          oficial de salida de su turno. Si el estudiante sí se retiró y solo
+          faltó escanear, cierra el día desde aquí.
+        </p>
+
+        <div class="d-flex gap-2 mb-3">
+          <select id="filtroTurnoPendientes" class="form-select form-select-sm">
+            <option value="">Ambos turnos</option>
+            <option value="manana">Mañana</option>
+            <option value="tarde">Tarde</option>
+          </select>
+          <button id="btnRecargarPendientes" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-rotate"></i>
+          </button>
+        </div>
+
+        <div id="listaPendientes">
+          <p class="text-muted text-center mb-0">Cargando…</p>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script type="module" src="js/auth-guard.js"></script>
+  <script type="module" src="js/registro-manual.js"></script>
+</body>
+</html>

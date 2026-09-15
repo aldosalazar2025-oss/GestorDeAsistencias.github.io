@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escanear asistencia | Asistencia Escolar</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <link rel="stylesheet" href="css/estilos.css">
+
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/logo-180.png">
+  <meta name="theme-color" content="#080d1a">
+</head>
+<!-- Sin data-rol-requerido: la usan admin y personal de asistencia por igual -->
+<body class="p-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="titulo-pagina"><img src="assets/logo.png" alt="Lalito Quien Mas" class="logo-cabecera"><span><i class="fa-solid fa-qrcode"></i> Escanear asistencia</span></h2>
+    <div>
+      <!-- Fase 7: salida cuando el QR no se puede escanear (requisito 19) -->
+      <a href="registro-manual.html" class="btn btn-outline-warning btn-sm">
+        <i class="fa-solid fa-pen-to-square"></i> Registro manual
+      </a>
+      <a href="index.html" class="btn btn-outline-secondary btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Volver al panel
+      </a>
+      <button id="btnLogout" class="btn btn-outline-danger btn-sm">
+        <i class="fa-solid fa-right-from-bracket"></i> Salir
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <div class="col-lg-6">
+
+      <div class="scanner-container">
+        <div id="reader"></div>
+
+        <div class="form-check form-switch mt-3">
+          <input class="form-check-input" type="checkbox" id="chkSonido" checked>
+          <label class="form-check-label" for="chkSonido">Sonido al escanear</label>
+        </div>
+      </div>
+
+      <div id="resultado" class="mt-3"></div>
+
+    </div>
+
+    <div class="col-lg-6">
+      <div class="tabla">
+        <h3><i class="fa-solid fa-list"></i> Últimos registrados en esta sesión</h3>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th>Estudiante</th>
+                <th>Hora</th>
+                <th>Tipo</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="listaRecientes">
+              <tr><td colspan="4" class="text-center text-muted">Aún no hay registros en esta sesión</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+  <script type="module" src="js/auth-guard.js"></script>
+  <script type="module" src="js/escanear.js"></script>
+</body>
+</html>
