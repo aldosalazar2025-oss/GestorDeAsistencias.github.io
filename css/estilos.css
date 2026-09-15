@@ -951,10 +951,11 @@ tbody tr:hover{
         overflow-x:auto;
     }
 
+    /* Las tablas ya no dependen de scroll horizontal: se convierten
+       en tarjetas apiladas más abajo (regla "TABLAS RESPONSIVAS"). */
     .tabla table,
     .table{
         font-size:13px;
-        min-width:520px;
     }
 
     .formulario-container{
@@ -1987,5 +1988,135 @@ input:focus-visible{
 
     .botones-lote .btn{
         flex:1 1 30%;
+    }
+}
+
+/* ==========================================================
+   TABLAS RESPONSIVAS — sitio completo
+   ---------------------------------------------------------
+   Toda tabla .table (dashboard, reportes, usuarios, escáner,
+   registro manual, estudiantes) se convierte en una lista de
+   tarjetas "etiqueta: valor" en vez de desbordarse con scroll
+   horizontal. El texto de la etiqueta sale del atributo
+   data-label, que pone js/tablas-responsivas.js en cada <td>.
+========================================================== */
+
+@media (max-width:768px){
+
+    .table-responsive{
+        overflow-x:visible;
+    }
+
+    table.table thead{
+        display:none;
+    }
+
+    table.table,
+    table.table tbody,
+    table.table tr,
+    table.table td{
+        display:block;
+        width:100% !important;
+    }
+
+    table.table{
+        border:0;
+    }
+
+    table.table tr{
+        margin-bottom:12px;
+        padding:10px 12px;
+        background:linear-gradient(180deg, rgba(16,26,48,.85), rgba(12,20,36,.85));
+        border:1px solid var(--panel-border);
+        border-radius:var(--radio-sm);
+        animation:apareceFila .35s ease both;
+    }
+
+    table.table tr:last-child{
+        margin-bottom:0;
+    }
+
+    table.table td{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+        text-align:right;
+        padding:8px 0;
+        border-bottom:1px solid rgba(120,160,255,.08);
+    }
+
+    table.table td:last-child{
+        border-bottom:none;
+    }
+
+    /* Celdas vacías (p. ej. sin foto) no necesitan mostrar una
+       etiqueta pegada a nada */
+    table.table td:empty{
+        display:none;
+    }
+
+    table.table td::before{
+        content:attr(data-label);
+        flex-shrink:0;
+        text-align:left;
+        font-family:'Space Grotesk', sans-serif;
+        font-size:11px;
+        font-weight:700;
+        text-transform:uppercase;
+        letter-spacing:.4px;
+        color:var(--cian-fuerte);
+    }
+
+    /* Filas de "cargando…" / "sin resultados" con colspan: se ven
+       como un solo texto centrado, sin etiqueta ni forma de tarjeta */
+    table.table td[colspan]{
+        display:block;
+        text-align:center;
+        border:none;
+        padding:16px 0;
+    }
+
+    table.table td[colspan]::before{
+        content:none;
+    }
+}
+
+/* ==========================================================
+   AJUSTES GENERALES DE MÓVIL — sitio completo
+========================================================== */
+
+@media (max-width:576px){
+
+    body.p-4{
+        padding:16px !important;
+    }
+
+    .titulo-pagina{
+        font-size:19px;
+    }
+
+    /* Botones de cabecera: que ocupen el ancho disponible en vez
+       de quedar en una fila apretada de iconos pequeños */
+    .d-flex.justify-content-between.flex-wrap .btn,
+    .d-flex.justify-content-between.flex-wrap a.btn{
+        flex:1 1 auto;
+        justify-content:center;
+    }
+
+    .nav-tabs{
+        flex-wrap:nowrap;
+        overflow-x:auto;
+        overflow-y:hidden;
+        -webkit-overflow-scrolling:touch;
+    }
+
+    .nav-tabs .nav-link{
+        white-space:nowrap;
+    }
+
+    .login-container{
+        padding:28px 22px !important;
+        margin:16px;
     }
 }

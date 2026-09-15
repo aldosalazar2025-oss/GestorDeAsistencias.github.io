@@ -16,9 +16,9 @@
 <!-- Sin data-rol-requerido: la usan admin y personal de asistencia por igual -->
 <body class="p-4">
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <h2 class="titulo-pagina"><img src="assets/logo.png" alt="Lalito Quien Mas" class="logo-cabecera"><span><i class="fa-solid fa-qrcode"></i> Escanear asistencia</span></h2>
-    <div>
+    <div class="d-flex flex-wrap gap-2">
       <!-- Fase 7: salida cuando el QR no se puede escanear (requisito 19) -->
       <a href="registro-manual.html" class="btn btn-outline-warning btn-sm">
         <i class="fa-solid fa-pen-to-square"></i> Registro manual
@@ -76,6 +76,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 
   <script type="module" src="js/auth-guard.js"></script>
+  <script src="js/tablas-responsivas.js"></script>
   <script type="module" src="js/escanear.js"></script>
 </body>
 </html>
