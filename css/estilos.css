@@ -1784,3 +1784,53 @@ input:focus-visible{
         gap:10px;
     }
 }
+
+/* ==========================================================
+   CORRECCIÓN DE CONTRASTE — formularios dentro de .card
+   ---------------------------------------------------------
+   La clase .card se diseñó solo para las tarjetas del dashboard
+   (h3 + p, con color ya definido arriba). Al reutilizarla en
+   Configuración de horarios con un <h5> y <label class="form-label">,
+   esos elementos quedaban con el color oscuro por defecto de
+   Bootstrap sobre un fondo oscuro: texto casi invisible. Se corrige
+   aquí en vez de tocar cada página, para que cualquier formulario
+   futuro dentro de .card salga legible desde el principio.
+========================================================== */
+
+.card h4,
+.card h5,
+.card h6{
+    color:var(--texto) !important;
+}
+
+.card .form-label{
+    color:var(--texto-mid) !important;
+    font-weight:600;
+    font-size:13px;
+}
+
+.card .form-control,
+.card .form-select{
+    background:var(--panel-2) !important;
+    color:var(--texto) !important;
+    border:1px solid var(--panel-border-strong) !important;
+}
+
+.card .form-control::placeholder{
+    color:var(--texto-muted) !important;
+}
+
+.card .form-control:focus,
+.card .form-select:focus{
+    background:var(--panel-2) !important;
+    color:var(--texto) !important;
+    border-color:var(--cian) !important;
+    box-shadow:0 0 0 3px rgba(32,227,210,.18) !important;
+}
+
+/* Los navegadores pintan el reloj/calendario de type=time y
+   type=date en negro por defecto, invisible sobre fondo oscuro. */
+.card input[type="time"]::-webkit-calendar-picker-indicator,
+.card input[type="date"]::-webkit-calendar-picker-indicator{
+    filter:invert(1) brightness(1.6);
+}
