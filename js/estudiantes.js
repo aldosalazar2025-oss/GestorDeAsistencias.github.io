@@ -5,6 +5,8 @@ import {
     addDoc,
     doc,
     updateDoc,
+    deleteDoc,
+    writeBatch,
     onSnapshot,
     query,
     where,
@@ -83,6 +85,8 @@ function generarMiniatura(archivo) {
 
 const formEstudiante = document.getElementById("formEstudiante");
 const tabla = document.getElementById("tablaEstudiantes");
+const listaMovil = document.getElementById("listaEstudiantesMovil");
+const contadorResultados = document.getElementById("contadorResultados");
 const buscador = document.getElementById("buscar");
 const filtroGrado = document.getElementById("filtroGrado");
 const filtroSeccion = document.getElementById("filtroSeccion");
@@ -267,8 +271,17 @@ function aplicarFiltros() {
 
 function mostrarEstudiantes(lista) {
 
+    if (contadorResultados) {
+        contadorResultados.textContent = lista.length === 1
+            ? "1 estudiante encontrado"
+            : `${lista.length} estudiantes encontrados`;
+    }
+
     if (lista.length === 0) {
         tabla.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No se encontraron estudiantes</td></tr>`;
+        if (listaMovil) {
+            listaMovil.innerHTML = `<p class="text-center text-muted py-3">No se encontraron estudiantes</p>`;
+        }
         return;
     }
 
@@ -307,11 +320,14 @@ function mostrarEstudiantes(lista) {
                         title="${est.estado === "activo" ? "Desactivar" : "Activar"}">
                     <i class="fa-solid ${est.estado === "activo" ? "fa-user-slash" : "fa-user-check"}"></i>
                 </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="eliminar('${est.id}')" title="Eliminar">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
             </td>
         </tr>
     `).join("");
 
-    // Dibujar cada QR después de insertar el HTML
+    // Dibujar cada QR de la tabla después de insertar el HTML
     lista.forEach((est) => {
         const contenedor = document.getElementById(`qr-${est.id}`);
         if (contenedor) {
@@ -320,15 +336,81 @@ function mostrarEstudiantes(lista) {
         }
     });
 
+    // ===========================
+    // Vista de tarjetas (celular)
+    // ===========================
+
+    if (listaMovil) {
+
+        listaMovil.innerHTML = lista.map((est) => `
+            <div class="tarjeta-estudiante">
+                <div class="tarjeta-estudiante-cabecera">
+                    <div class="tarjeta-estudiante-foto">
+                        ${est.fotoUrl
+                            ? `<img src="${est.fotoUrl}" alt="">`
+                            : `<i class="fa-solid fa-user-graduate"></i>`}
+                    </div>
+                    <div class="tarjeta-estudiante-datos">
+                        <strong>${escapar(est.nombres)} ${escapar(est.apellidos)}</strong>
+                        <span class="dato-dni">${escapar(est.dni)}</span>
+                    </div>
+                    <span class="badge ${est.estado === "activo" ? "bg-success" : "bg-secondary"} tarjeta-estudiante-estado">
+                        ${est.estado === "activo" ? "Activo" : "Inactivo"}
+                    </span>
+                </div>
+
+                <div class="tarjeta-estudiante-info">
+                    <span><i class="fa-solid fa-graduation-cap"></i> ${escapar(est.grado)} "${escapar(est.seccion)}"</span>
+                    <span><i class="fa-solid fa-clock"></i> ${est.turno === "manana" ? "Mañana" : "Tarde"}</span>
+                </div>
+
+                <div class="tarjeta-estudiante-qr">
+                    <div class="qr-marco">
+                        <div id="qrm-${est.id}"></div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="descargarQR('${est.id}', '${est.codigoQR}', 'qrm-')">
+                        <i class="fa-solid fa-download"></i> Descargar QR
+                    </button>
+                </div>
+
+                <div class="tarjeta-estudiante-acciones">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editar('${est.id}')">
+                        <i class="fa-solid fa-pen"></i> Editar
+                    </button>
+                    <button class="btn btn-sm ${est.estado === "activo" ? "btn-outline-danger" : "btn-outline-success"}"
+                            onclick="cambiarEstado('${est.id}', '${est.estado}')">
+                        <i class="fa-solid ${est.estado === "activo" ? "fa-user-slash" : "fa-user-check"}"></i>
+                        ${est.estado === "activo" ? "Desactivar" : "Activar"}
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminar('${est.id}')">
+                        <i class="fa-solid fa-trash"></i> Eliminar
+                    </button>
+                </div>
+            </div>
+        `).join("");
+
+        // Dibujar cada QR de las tarjetas después de insertar el HTML
+        lista.forEach((est) => {
+            const contenedor = document.getElementById(`qrm-${est.id}`);
+            if (contenedor) {
+                contenedor.innerHTML = "";
+                new QRCode(contenedor, { text: est.codigoQR, width: 90, height: 90 });
+            }
+        });
+
+    }
+
 }
 
 /* ===========================
    DESCARGAR QR (con marco blanco imprimible)
+   Sirve tanto a la tabla ("qr-") como a las tarjetas
+   de celular ("qrm-"); el prefijo indica qué contenedor leer.
 =========================== */
 
-window.descargarQR = (id, codigo) => {
+window.descargarQR = (id, codigo, prefijo = "qr-") => {
 
-    const contenedor = document.getElementById(`qr-${id}`);
+    const contenedor = document.getElementById(`${prefijo}${id}`);
     if (!contenedor) return;
 
     const origen = contenedor.querySelector("canvas") || contenedor.querySelector("img");
@@ -422,6 +504,112 @@ window.cambiarEstado = async (id, estadoActual) => {
     }
 
 };
+
+/* ===========================
+   ELIMINAR UN ESTUDIANTE
+   (borrado físico y definitivo; el historial de
+   asistencias ya registrado no se toca, pero queda
+   apuntando a un estudiante que ya no existe)
+=========================== */
+
+window.eliminar = async (id) => {
+
+    const est = listaEstudiantes.find((e) => e.id === id);
+    if (!est) return;
+
+    const confirmado = confirm(
+        `¿Eliminar definitivamente a ${est.nombres} ${est.apellidos} (DNI ${est.dni})?\n\n` +
+        `Esta acción no se puede deshacer: el estudiante y su código QR dejarán de existir. ` +
+        `El historial de asistencias ya registrado no se borra, pero quedará asociado a un ` +
+        `estudiante que ya no existe.\n\n` +
+        `Si solo quieres que deje de asistir temporalmente, usa "Desactivar" en vez de eliminar.`
+    );
+
+    if (!confirmado) return;
+
+    try {
+        await deleteDoc(doc(db, "estudiantes", id));
+    } catch (error) {
+        console.error(error);
+        alert("No se pudo eliminar el estudiante");
+    }
+
+};
+
+/* ===========================
+   ELIMINAR TODOS LOS ESTUDIANTES DEL FILTRO ACTUAL
+   Requiere escribir "ELIMINAR" en el modal para confirmar,
+   ya que es una acción destructiva e irreversible.
+=========================== */
+
+const btnEliminarTodos = document.getElementById("btnEliminarTodos");
+const modalEliminarTodosEl = document.getElementById("modalEliminarTodos");
+const modalEliminarTodos = modalEliminarTodosEl ? new bootstrap.Modal(modalEliminarTodosEl) : null;
+const textoEliminarTodos = document.getElementById("textoEliminarTodos");
+const inputConfirmarEliminarTodos = document.getElementById("inputConfirmarEliminarTodos");
+const btnConfirmarEliminarTodos = document.getElementById("btnConfirmarEliminarTodos");
+
+btnEliminarTodos?.addEventListener("click", () => {
+
+    const lista = window.listaEstudiantesFiltrados || [];
+
+    if (lista.length === 0) {
+        alert("No hay estudiantes que coincidan con el filtro actual");
+        return;
+    }
+
+    const hayFiltroActivo = Boolean(buscador.value || filtroGrado.value || filtroSeccion.value || filtroTurno.value);
+
+    textoEliminarTodos.textContent = hayFiltroActivo
+        ? `Vas a eliminar definitivamente ${lista.length} estudiante(s) que coinciden con el filtro/búsqueda actual.`
+        : `Vas a eliminar definitivamente los ${lista.length} estudiante(s) registrados (no hay ningún filtro aplicado).`;
+
+    inputConfirmarEliminarTodos.value = "";
+    btnConfirmarEliminarTodos.disabled = true;
+    modalEliminarTodos.show();
+
+});
+
+inputConfirmarEliminarTodos?.addEventListener("input", () => {
+    btnConfirmarEliminarTodos.disabled = inputConfirmarEliminarTodos.value.trim() !== "ELIMINAR";
+});
+
+btnConfirmarEliminarTodos?.addEventListener("click", async () => {
+
+    const lista = window.listaEstudiantesFiltrados || [];
+    if (lista.length === 0) return;
+
+    const textoOriginalBoton = btnConfirmarEliminarTodos.innerHTML;
+    btnConfirmarEliminarTodos.disabled = true;
+    btnConfirmarEliminarTodos.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Eliminando…`;
+
+    try {
+
+        // writeBatch admite un máximo de 500 operaciones por lote,
+        // así que se divide en grupos para listas grandes.
+        const TAMANO_LOTE = 450;
+
+        for (let i = 0; i < lista.length; i += TAMANO_LOTE) {
+            const grupo = lista.slice(i, i + TAMANO_LOTE);
+            const lote = writeBatch(db);
+            grupo.forEach((est) => lote.delete(doc(db, "estudiantes", est.id)));
+            await lote.commit();
+        }
+
+        modalEliminarTodos.hide();
+
+    } catch (error) {
+
+        console.error(error);
+        alert("Ocurrió un error al eliminar. Puede que algunos estudiantes ya se hayan borrado; revisa la lista.");
+
+    } finally {
+
+        btnConfirmarEliminarTodos.innerHTML = textoOriginalBoton;
+
+    }
+
+});
 
 function mostrarMensaje(texto, tipo) {
     mensajeEstudiante.textContent = texto;

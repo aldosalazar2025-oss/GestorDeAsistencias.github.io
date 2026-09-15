@@ -24,24 +24,24 @@
      está reservada a administradores (ver firestore.rules) -->
 <body data-rol-requerido="admin" class="p-4">
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <h2 class="titulo-pagina"><img src="assets/logo.png" alt="Lalito Quien Mas" class="logo-cabecera"><span><i class="fa-solid fa-user-graduate"></i> Gestión de estudiantes</span></h2>
-    <div>
+    <div class="d-flex flex-wrap gap-2 acciones-cabecera">
       <button id="btnDescargarPlantilla" class="btn btn-outline-secondary btn-sm">
-        <i class="fa-solid fa-file-arrow-down"></i> Plantilla
+        <i class="fa-solid fa-file-arrow-down"></i> <span class="d-none d-sm-inline">Plantilla</span>
       </button>
       <button id="btnImportarExcel" class="btn btn-outline-primary btn-sm">
-        <i class="fa-solid fa-file-import"></i> Importar Excel
+        <i class="fa-solid fa-file-import"></i> <span class="d-none d-sm-inline">Importar Excel</span>
       </button>
       <input type="file" id="inputImportarExcel" accept=".xlsx,.xls" class="d-none">
       <button id="btnExportarExcel" class="btn btn-outline-success btn-sm">
-        <i class="fa-solid fa-file-export"></i> Exportar
+        <i class="fa-solid fa-file-export"></i> <span class="d-none d-sm-inline">Exportar</span>
       </button>
       <a href="index.html" class="btn btn-outline-secondary btn-sm">
-        <i class="fa-solid fa-arrow-left"></i> Volver al panel
+        <i class="fa-solid fa-arrow-left"></i> <span class="d-none d-sm-inline">Volver al panel</span>
       </a>
       <button id="btnLogout" class="btn btn-outline-danger btn-sm">
-        <i class="fa-solid fa-right-from-bracket"></i> Salir
+        <i class="fa-solid fa-right-from-bracket"></i> <span class="d-none d-sm-inline">Salir</span>
       </button>
     </div>
   </div>
@@ -70,15 +70,15 @@
           </div>
 
           <div class="row g-2 mt-1">
-            <div class="col-4">
+            <div class="col-6 col-md-4">
               <label class="form-label">Grado</label>
               <input type="text" id="grado" class="form-control" placeholder="5º" required>
             </div>
-            <div class="col-4">
+            <div class="col-6 col-md-4">
               <label class="form-label">Sección</label>
               <input type="text" id="seccion" class="form-control" placeholder="A" required>
             </div>
-            <div class="col-4">
+            <div class="col-12 col-md-4">
               <label class="form-label">Turno</label>
               <select id="turno" class="form-select" required>
                 <option value="manana">Mañana</option>
@@ -105,18 +105,20 @@
       <div class="card p-3">
 
         <div class="row g-2 mb-2">
-          <div class="col-md-4">
+          <div class="col-12">
             <input type="text" id="buscar" class="form-control" placeholder="Buscar por nombre o DNI…">
           </div>
-          <div class="col-md-3">
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-4">
             <select id="filtroGrado" class="form-select"><option value="">Todos</option></select>
           </div>
-          <div class="col-md-2">
+          <div class="col-4">
             <select id="filtroSeccion" class="form-select"><option value="">Todas</option></select>
           </div>
-          <div class="col-md-3">
+          <div class="col-4">
             <select id="filtroTurno" class="form-select">
-              <option value="">Todos los turnos</option>
+              <option value="">Todos</option>
               <option value="manana">Mañana</option>
               <option value="tarde">Tarde</option>
             </select>
@@ -125,19 +127,25 @@
 
         <!-- FASE 5: descarga masiva de los QR que coincidan con el filtro actual
              (solo estudiantes activos; ver docs/fase5-qr.md) -->
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
           <small id="contadorLoteQR" class="text-muted">Calculando…</small>
-          <div>
+          <div class="d-flex flex-wrap gap-2 botones-lote">
             <button id="btnDescargarQrZip" type="button" class="btn btn-outline-secondary btn-sm">
-              <i class="fa-solid fa-file-zipper"></i> QR del filtro (ZIP)
+              <i class="fa-solid fa-file-zipper"></i> <span class="d-none d-sm-inline">QR del filtro </span>(ZIP)
             </button>
             <button id="btnDescargarQrPdf" type="button" class="btn btn-outline-secondary btn-sm">
-              <i class="fa-solid fa-file-pdf"></i> QR del filtro (PDF)
+              <i class="fa-solid fa-file-pdf"></i> <span class="d-none d-sm-inline">QR del filtro </span>(PDF)
+            </button>
+            <button id="btnEliminarTodos" type="button" class="btn btn-outline-danger btn-sm">
+              <i class="fa-solid fa-trash"></i> Eliminar todos
             </button>
           </div>
         </div>
 
-        <div class="table-responsive">
+        <p id="contadorResultados" class="text-muted small mb-2 d-md-none"></p>
+
+        <!-- Tabla clásica: solo en pantallas medianas/grandes -->
+        <div class="table-responsive d-none d-md-block">
           <table class="table align-middle">
             <thead>
               <tr>
@@ -154,6 +162,11 @@
               <tr><td colspan="7" class="text-center">Cargando…</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Tarjetas: solo en celular, una tarjeta por estudiante -->
+        <div id="listaEstudiantesMovil" class="lista-estudiantes-movil d-md-none">
+          <p class="text-center text-muted py-3">Cargando…</p>
         </div>
 
       </div>
@@ -202,6 +215,33 @@
             <button type="submit" class="btn btn-primary">Guardar cambios</button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal eliminar todos (respeta el filtro actual de la tabla) -->
+  <div class="modal fade" id="modalEliminarTodos" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Eliminar estudiantes</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p id="textoEliminarTodos"></p>
+          <p class="text-muted small">
+            El historial de asistencias ya registrado no se elimina junto con el estudiante,
+            pero quedará asociado a un estudiante que ya no existe. Esta acción no se puede deshacer.
+          </p>
+          <label class="form-label">Escribe <strong>ELIMINAR</strong> para confirmar</label>
+          <input type="text" id="inputConfirmarEliminarTodos" class="form-control" autocomplete="off">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" id="btnConfirmarEliminarTodos" class="btn btn-danger" disabled>
+            <i class="fa-solid fa-trash"></i> Eliminar definitivamente
+          </button>
+        </div>
       </div>
     </div>
   </div>
